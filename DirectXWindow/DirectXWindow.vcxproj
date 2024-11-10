@@ -129,7 +129,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="d3dx12_property_format_table.cpp" />
     <ClCompile Include="DirectXWindow.cpp" />
+    <ClCompile Include="dxguids.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Helpers.h" />
