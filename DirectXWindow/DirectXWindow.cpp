@@ -97,10 +97,10 @@ void RegisterWindowClass(HINSTANCE hInst, const wchar_t* windowClassName)
 
 HWND CreateWindow(const wchar_t* windowClassName, HINSTANCE hInst, const wchar_t* windowTitle, uint32_t width, uint32_t height)
 {
-	int screenWidth =	::GetSystemMetrics(SM_CXSCREEN);
-	int screenHeight =	::GetSystemMetrics(SM_CYSCREEN);
+	int screenWidth = ::GetSystemMetrics(SM_CXSCREEN);
+	int screenHeight = ::GetSystemMetrics(SM_CYSCREEN);
 
-	RECT windowRect =	{ 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
+	RECT windowRect = { 0, 0, static_cast<LONG>(width), static_cast<LONG>(height) };
 	::AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
 
 	int windowWidth = windowRect.right - windowRect.left;
@@ -149,12 +149,40 @@ Microsoft::WRL::ComPtr<IDXGIAdapter4> GetAdapter(bool useWarp)
 	else
 	{
 		SIZE_T maxDedicatedVideoMemory = 0;
-		for (UINT i = 0; i < dxgiFactory->EnumAdapters1(i, &dxgiAdapter1) != DXGI_ERROR_NOT_FOUND; i++)
+		for (UINT i = 0; i < dxgiFactory->EnumAdapters1(i, &dxgiAdapter1) != DXGI_ERROR_NOT_FOUND; i++) //Enumerate the available GPU adapters in the system.
 		{
 			DXGI_ADAPTER_DESC1 dxgiAdapterDesc1;
 			dxgiAdapter1->GetDesc1(&dxgiAdapterDesc1);
+
+
+			/* 
+			* Check to see if the adapter can create a D3D12 device without actually
+			* creating it. The adapter with the largest dedicated video memory
+			* is favored.
+			*/
+			if ((dxgiAdapterDesc1.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0 && // DXGI_ADAPTER_FLAG_SOFTWARE == 0 -> hardware adapters only
+				SUCCEEDED(D3D12CreateDevice(dxgiAdapter1.Get(),D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), nullptr)) &&
+				dxgiAdapterDesc1.DedicatedVideoMemory > maxDedicatedVideoMemory)
+			{
+				maxDedicatedVideoMemory = dxgiAdapterDesc1.DedicatedVideoMemory;
+				ThrowIfFailed(dxgiAdapter1.As(&dxgiAdapter4));
+			}
 		}
 	}
+
+	return dxgiAdapter4;
+}
+
+Microsoft::WRL::ComPtr<ID3D12Device2> CreateDevice(Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter)
+{
+	Microsoft::WRL::ComPtr<ID3D12Device2> d3d12Device2;
+	ThrowIfFailed(D3D12CreateDevice(adapter.Get(),				// Pointer to the adapter
+									D3D_FEATURE_LEVEL_11_0,		// Minimum feature level 
+									IID_PPV_ARGS(&d3d12Device2)	//Globaly Unique Identifier (GUID) for the device interface
+									));
+
+
+	
 }
 
 int main()
