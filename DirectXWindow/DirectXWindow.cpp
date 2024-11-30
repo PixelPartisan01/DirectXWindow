@@ -222,14 +222,55 @@ Microsoft::WRL::ComPtr<ID3D12CommandQueue> CreateCommandQueue(Microsoft::WRL::Co
 	Microsoft::WRL::ComPtr<ID3D12CommandQueue> d3d12CommandQueue;
 
 	D3D12_COMMAND_QUEUE_DESC desc = {};
-	desc.Type = type;
+
+	desc.Type = type; 
+	/*
+	* Specifies the type of command queue to create and can be one of the following types :
+	* D3D12_COMMAND_LIST_TYPE_DIRECT:  The command queue can be used to execute draw, compute, and copy commands. This is the most general type of command queue and will be used in most cases.
+	* D3D12_COMMAND_LIST_TYPE_COMPUTE: The command queue can be used to execute compute and copy commands.
+	* D3D12_COMMAND_LIST_TYPE_COPY: Command queue can be used to execute copy commands.
+	*/
 	desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+	/*
+	* The priority for the command queue. Can be one of the following values:
+	* D3D12_COMMAND_QUEUE_PRIORITY_NORMAL: The command queue has normal priority.
+	* D3D12_COMMAND_QUEUE_PRIORITY_HIGH: The command queue has high priority.
+	* D3D12_COMMAND_QUEUE_PRIORITY_GLOBAL_REALTIME: The command queue has global realtime priority.
+	*/
 	desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+	/*
+	* Specifies additional flags from the D3D12_COMMAND_QUEUE_FLAGS enumeratrion.
+	*/
 	desc.NodeMask = 0;
+	/*
+	* For single GPU operation, set this to zero. If there are multiple GPU nodes, set a bit to identify the node (the device’s physical adapter) to which the command queue applies. Each bit in the mask corresponds to a single node. Only 1 bit must be set. 
+	*/
 
 	ThrowIfFailed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&d3d12CommandQueue)));
 
 	return d3d12CommandQueue;
+}
+
+bool CheckTearingSupport()
+{
+	BOOL allowTearing = FALSE;
+
+	Microsoft::WRL::ComPtr<IDXGIFactory4> factory4;
+
+	if (SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(&factory4))))
+	{
+		Microsoft::WRL::ComPtr<IDXGIFactory5> factory5;
+		if (SUCCEEDED(factory4.As(&factory5)))
+		{
+			if (FAILED(factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing))))
+			{
+				allowTearing = FALSE;
+			}
+		}
+	}
+
+	return allowTearing == TRUE;
+
 }
 
 int main()
