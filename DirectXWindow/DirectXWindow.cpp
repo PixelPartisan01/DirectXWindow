@@ -270,9 +270,50 @@ bool CheckTearingSupport()
 	}
 
 	return allowTearing == TRUE;
-
 }
 
+Microsoft::WRL::ComPtr<IDXGISwapChain4> CreateSwapChain(HWND hWnd, Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue, uint32_t width, uint32_t height, uint32_t bufferCount)
+{
+	Microsoft::WRL::ComPtr<IDXGISwapChain4> dxgiSwapChain4;
+	Microsoft::WRL::ComPtr<IDXGIFactory4> dxgiFactory4;
+	UINT createFactoryFlags = 0;
+
+#if defined(_DEBUG)
+	createFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
+#endif
+
+	ThrowIfFailed(CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&dxgiFactory4)));
+
+	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+	swapChainDesc.Width = width; //  A value that describes the resolution width.
+	swapChainDesc.Height = height; //  A value that describes the resolution height.
+	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // Describes the display format.
+	swapChainDesc.Stereo = FALSE; // Specifies whether the full-screen display mode or the swap-chain back buffer is stereo. TRUE if stereo; otherwise, FALSE. If you specify stereo, you must also specify a flip-model swap chain.
+	swapChainDesc.SampleDesc = { 1, 0 }; // Describes multi-sampling parameters. This member is valid only with bit-block transfer (bitblt) model swap chains. When using flip model swap chain, this member must be specified as {1, 0}.
+	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // Describes the surface usage and CPU access options for the back buffer. The back buffer can be used for shader input (DXGI_USAGE_SHADER_INPUT) or render-target output (DXGI_USAGE_RENDER_TARGET_OUTPUT).
+	swapChainDesc.BufferCount = bufferCount; // describes the number of buffers in the swap chain. When you create a full-screen swap chain, you typically include the front buffer in this value.
+	swapChainDesc.Scaling = DXGI_SCALING_STRETCH; // make the back-buffer contents scale to fit the presentation target size.
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // Describes the presentation model that is used by the swap chain and options for handling the contents of the presentation buffer after presenting a surface.
+	swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED; // Identifies the transparency behavior of the swap-chain back buffer.
+	swapChainDesc.Flags = CheckTearingSupport() ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+
+	Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain1;
+	ThrowIfFailed(dxgiFactory4->CreateSwapChainForHwnd(
+		commandQueue.Get(), // pointer to a direct command queue (NEVER NULL).
+		hWnd, // Handle that is associated with the swap chain (NEVER NULL).
+		&swapChainDesc, // A pointer to a DXGI_SWAP_CHAIN_DESC1 structure for the swap-chain description (NEVER NULL).
+		nullptr, // A pointer to a DXGI_SWAP_CHAIN_FULLSCREEN_DESC structure for the description of a full-screen swap chain.
+		nullptr, // A pointer to the IDXGIOutput interface for the output to restrict content to.
+		&swapChain1 // A pointer to a variable that receives a pointer to the IDXGISwapChain1 interface for the swap chain that CreateSwapChainForHwnd creates.
+		));
+
+	ThrowIfFailed(dxgiFactory4->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER));
+
+	ThrowIfFailed(swapChain1.As(&dxgiSwapChain4));
+
+	return dxgiSwapChain4;
+}
+ 
 int main()
 {
 	return 0;
